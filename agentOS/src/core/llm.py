@@ -63,21 +63,74 @@ RULES:
 
 class LLMClient:
     def __init__(self):
-        self.api_key = os.getenv("AGENT_API_KEY")
-        # Default to OpenAI, but allow override for Local/Groq/etc.
-        self.api_url = os.getenv("AGENT_API_URL", "https://api.openai.com/v1/chat/completions")
-        self.model = os.getenv("AGENT_MODEL", "gpt-4o-mini") 
+        # Paths
+        self.config_path = os.path.join(os.path.dirname(__file__), "../../data/config.json")
         
-        if not self.api_key:
-            print("Warning: AGENT_API_KEY not set. Chat mode will be simulated.")
+        # Load Config
+        self.config = self._load_config()
+        
+        # Configuration Priorities: Config File > Env Var > Defaults
+        self.api_key = os.getenv("AGENT_API_KEY", "ollama") 
+        self.base_url = self.config.get("base_url") or os.getenv("AGENT_BASE_URL", "http://localhost:11434")
+        self.model = self.config.get("model") or os.getenv("AGENT_MODEL", "llama3")
+        
+        # Determine endpoints based on base_url
+        self._update_endpoints()
+
+    def _update_endpoints(self):
+        if "localhost" in self.base_url or "127.0.0.1" in self.base_url:
+            self.provider = "ollama"
+            self.chat_endpoint = f"{self.base_url}/v1/chat/completions"
+            self.tags_endpoint = f"{self.base_url}/api/tags"
+        else:
+            self.provider = "openai"
+            self.chat_endpoint = f"{self.base_url}/v1/chat/completions"
+            self.tags_endpoint = f"{self.base_url}/v1/models"
+
+    def _load_config(self):
+        if os.path.exists(self.config_path):
+            try:
+                with open(self.config_path, 'r') as f:
+                    return json.load(f)
+            except: pass
+        return {}
+
+    def save_config(self, model=None, base_url=None):
+        if model: self.model = model
+        if base_url: self.base_url = base_url
+        
+        self.config['model'] = self.model
+        self.config['base_url'] = self.base_url
+        
+        # Ensure dir exists
+        os.makedirs(os.path.dirname(self.config_path), exist_ok=True)
+        
+        with open(self.config_path, 'w') as f:
+            json.dump(self.config, f, indent=2)
+            
+        self._update_endpoints()
+
+    def list_models(self):
+        """Fetches available models from the provider."""
+        try:
+            req = urllib.request.Request(self.tags_endpoint)
+            if self.provider == "openai" and self.api_key:
+                 req.add_header("Authorization", f"Bearer {self.api_key}")
+
+            with urllib.request.urlopen(req, timeout=5) as response:
+                data = json.load(response)
+                
+                if self.provider == "ollama":
+                    return [m['name'] for m in data.get('models', [])]
+                else:
+                    return [m['id'] for m in data.get('data', [])]
+        except Exception as e:
+            return [f"Error fetching models: {e}"]
 
     def chat(self, user_input, history=[]):
         """
         Sends message to LLM. Returns (text_response, tool_call_dict).
         """
-        if not self.api_key:
-            return self._simulation_mode(user_input)
-
         messages = [{"role": "system", "content": SYSTEM_PROMPT}] + history + [{"role": "user", "content": user_input}]
         
         payload = {
@@ -89,7 +142,7 @@ class LLMClient:
 
         try:
             req = urllib.request.Request(
-                self.api_url,
+                self.chat_endpoint,
                 data=json.dumps(payload).encode('utf-8'),
                 headers={
                     "Content-Type": "application/json",
@@ -97,35 +150,23 @@ class LLMClient:
                 }
             )
             
-            with urllib.request.urlopen(req) as response:
+            with urllib.request.urlopen(req, timeout=120) as response:
                 result = json.load(response)
                 content = result['choices'][0]['message']['content']
                 
-                # Check if it's a tool call (JSON)
                 try:
-                    data = json.loads(content)
-                    if "tool" in data and "args" in data:
-                        return None, data
-                    return content, None # Just text
+                    json_start = content.find('{')
+                    json_end = content.rfind('}') + 1
+                    if json_start >= 0 and json_end > json_start:
+                        json_str = content[json_start:json_end]
+                        data = json.loads(json_str)
+                        if "tool" in data and "args" in data:
+                            return None, data
+                    return content, None 
                 except:
                     return content, None
                     
+        except urllib.error.URLError as e:
+             return f"Connection Error ({self.provider}): {e.reason}. Is the server running?", None
         except Exception as e:
             return f"Error contacting LLM: {e}", None
-
-    def _simulation_mode(self, user_input):
-        """Fallback for when no API key is present."""
-        user_input = user_input.lower()
-        
-        # Simple keyword matching for demo purposes
-        if "clean" in user_input and "pip" in user_input:
-            return None, {"tool": "disk", "args": {"action": "clean", "target": "pip"}}
-        if "disk" in user_input and "scan" in user_input:
-            return None, {"tool": "disk", "args": {"action": "scan"}}
-        if "note" in user_input and "add" in user_input:
-            # Extract basic content
-            return None, {"tool": "memory", "args": {"action": "add_note", "content": "Simulated Note", "tags": "demo"}}
-        if "docker" in user_input:
-            return None, {"tool": "system", "args": {"action": "docker_prune"}}
-            
-        return "I am in simulation mode (No API KEY). I can only respond to basic keywords like 'clean pip', 'scan disk', 'add note'. Set AGENT_API_KEY to use full intelligence.", None

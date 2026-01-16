@@ -11,6 +11,7 @@ To build a modular, dual-interface (CLI + LLM) system administration toolkit. Th
     *   **Documentation:** Comprehensive docstrings for all classes and methods to guide the Agent.
     *   **User Experience:** TUIs must be visually distinct (colored) and intuitive.
 3.  **State Awareness:** The system remembers past actions, successful commands, and user preferences via a local SQLite database.
+4.  **Security:** Secrets in command history are sanitized (redacted) before storage.
 
 ## Architecture
 
@@ -22,12 +23,12 @@ To build a modular, dual-interface (CLI + LLM) system administration toolkit. Th
 │   ├── core/            # Shared logic
 │   │   ├── schemas.py   # Pydantic models (The Contract)
 │   │   ├── style.py     # TUI Styling & Colors
-│   │   └── db.py        # Database connection/ORM
+│   │   └── llm.py       # OpenAI-compatible API Client
 │   ├── skills/          # Distinct capability modules
-│   │   ├── disk/        # Disk cleaner & Analyzer (Done)
-│   │   ├── memory/      # History & Notes (In Progress)
-│   │   └── system/      # System info & Process management
-│   └── agent.py         # Main entry point
+│   │   ├── disk/        # Disk cleaner & Analyzer
+│   │   ├── memory/      # History & Notes (Secure)
+│   │   └── system/      # Docker, Logs, Trash
+│   └── agent.py         # Main entry point & Chat Loop
 ├── data/                # Local SQLite DB (agent.db)
 └── README.md
 ```
@@ -35,7 +36,7 @@ To build a modular, dual-interface (CLI + LLM) system administration toolkit. Th
 ### 2. The "Skill" Interface
 Each module (e.g., `DiskSkill`, `MemorySkill`) must implement:
 *   **`run_tui()`**: Interactive, colored menu.
-*   **Public Methods**: Typed methods returning Pydantic objects (e.g., `get_notes() -> List[Note]`).
+*   **Public Methods**: Typed methods returning Pydantic objects.
 
 ## Roadmap
 
@@ -44,14 +45,15 @@ Each module (e.g., `DiskSkill`, `MemorySkill`) must implement:
 - [x] Implement **Disk Skill** (Cache cleaning, Env management, File scanning).
 - [x] Dual-mode support (JSON/TUI).
 
-### Phase 2: The "Second Brain" (Current)
-- [ ] **Core Styling:** create `style.py` for consistent, colored UI.
-- [ ] **Database Setup:** SQLite initialization for history/notes.
-- [ ] **Memory Skill:**
-    - [ ] Command History Ingestion.
-    - [ ] Semantic/Text Search for commands.
-    - [ ] Notes management (Tags, Content).
+### Phase 2: The "Second Brain" (Completed)
+- [x] **Core Styling:** `style.py` for consistent, colored UI.
+- [x] **Database Setup:** SQLite initialization for history/notes.
+- [x] **Memory Skill:**
+    - [x] Command History Ingestion with **Security Sanitization**.
+    - [x] Semantic/Text Search for commands.
+    - [x] Notes management.
 
-### Phase 3: The Agent (Future)
-- [ ] Master CLI wrapper (`agentOS <command>`).
-- [ ] LLM Integration loop.
+### Phase 3: The Agent (Completed)
+- [x] **System Skill:** Docker pruning, Log vacuuming, Trash emptying.
+- [x] **LLM Client:** `src/core/llm.py` supporting OpenAI-compatible APIs.
+- [x] **Chat Interface:** Interactive loop in `agent.py` to route natural language to tools.
