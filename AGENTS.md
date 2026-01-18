@@ -23,7 +23,8 @@ To build a modular, dual-interface (CLI + LLM) system administration toolkit. Th
 │   ├── core/            # Shared logic
 │   │   ├── schemas.py   # Pydantic models (The Contract)
 │   │   ├── style.py     # TUI Styling & Colors
-│   │   └── llm.py       # OpenAI-compatible API Client
+│   │   ├── llm.py       # Basic LLM Client (Legacy/Simple)
+│   │   └── engine.py    # Pydantic AI Agent Factory & Tool Registration
 │   ├── skills/          # Distinct capability modules
 │   │   ├── disk/        # Disk cleaner & Analyzer
 │   │   ├── memory/      # History & Notes (Secure)
@@ -37,6 +38,12 @@ To build a modular, dual-interface (CLI + LLM) system administration toolkit. Th
 Each module (e.g., `DiskSkill`, `MemorySkill`) must implement:
 *   **`run_tui()`**: Interactive, colored menu.
 *   **Public Methods**: Typed methods returning Pydantic objects.
+
+### 3. Agent Engine (Pydantic AI)
+The system uses `pydantic-ai` to orchestrate tool usage.
+*   **Dependencies:** `AgentDeps` class injects skills into the agent context.
+*   **Dynamic Configuration:** The agent factory (`get_agent()`) allows runtime model switching without restart.
+*   **Compatibility:** Handles differences between Ollama (requires `/v1` suffix) and standard OpenAI endpoints.
 
 ## Roadmap
 
@@ -56,4 +63,15 @@ Each module (e.g., `DiskSkill`, `MemorySkill`) must implement:
 ### Phase 3: The Agent (Completed)
 - [x] **System Skill:** Docker pruning, Log vacuuming, Trash emptying.
 - [x] **LLM Client:** `src/core/llm.py` supporting OpenAI-compatible APIs.
-- [x] **Chat Interface:** Interactive loop in `agent.py` to route natural language to tools.
+- [x] **Chat Interface:** Interactive loop in `agent.py` using **Pydantic AI**.
+- [x] **Runtime Config:** Switch models via Settings menu.
+
+### Phase 4: Refinement & Documentation (In Progress)
+- [ ] **Documentation:** User README and Developer Technical Guide.
+- [ ] **Robustness:** Better error handling for LLM timeouts/failures.
+- [ ] **Testing:** Unit tests for core skills.
+
+### Phase 5: Future Expansion
+- [ ] **Git Skill:** Smart commit generation, branch cleanup.
+- [ ] **Network Skill:** Port scanning, process killing by port.
+- [ ] **Web Search:** Integration for fetching external docs.

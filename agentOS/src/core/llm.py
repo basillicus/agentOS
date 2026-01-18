@@ -49,16 +49,16 @@ You are AgentOS, a system administration assistant.
 You have access to the following tools to manage the user's computer:
 {json.dumps(TOOLS_SCHEMA, indent=2)}
 
-RULES:
-1. If the user asks to perform an action available in the tools, output a JSON object describing the tool call.
+MODES:
+1. **TOOL CALLING:** If the user asks to perform an action available in the tools, output a JSON object.
    Format: {{"tool": "module_name", "args": {{ "action": "...", ... }} }}
-   Example: {{"tool": "disk", "args": {{ "action": "clean", "target": "pip" }} }}
    
-2. If the user asks a general question, just answer normally.
+2. **ANALYSIS:** If you receive an observation starting with "Tool '...' returned this data:", you must NOT output JSON. 
+   Instead, analyze the data and answer the user's original question in clear, concise natural language.
 
-3. If you need more information to call a tool (e.g., missing 'content' for a note), ask the user.
-
-4. Be concise and professional.
+RULES:
+- Do not make up information.
+- Be concise.
 """
 
 class LLMClient:
