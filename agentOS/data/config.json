@@ -1,4 +1,4 @@
 {
-  "model": "granite4:latest",
+  "model": "llama3.2:latest",
   "base_url": "http://localhost:11434"
 }

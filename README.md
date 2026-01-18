@@ -10,6 +10,8 @@
 *   **⚙️ System Tools:** Prune Docker containers, vacuum system logs, and manage the Trash.
 *   **🔌 Dual Mode:** Every feature is available as a structured API (for the AI) and a colored TUI (for you).
 
+![AgentOS Working Example](images/test_agentOS_example.png)
+
 ## 🚀 Getting Started
 
 ### Prerequisites
