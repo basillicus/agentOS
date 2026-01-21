@@ -75,10 +75,20 @@ You can package AgentOS as a portable Apptainer (Singularity) container.
 If you modify the code (`entrypoint.sh` or `agentOS/`), you don't need to rebuild the image. Simply bind your local code over the container's code:
 
 ```bash
+  --env AGENTOS_DATA_DIR=/data \
+  agentOS.sif
+```
+
+### Running a Custom Model (e.g., Llama3, Mistral)
+To use a specific model that you already have locally, bind your models folder and set the `AGENT_MODEL` variable:
+
+```bash
+# Example: Using 'llama3' from your local Ollama library
 apptainer run \
-  --bind ./entrypoint.sh:/app/entrypoint.sh \
-  --bind ./agentOS:/app/agentOS \
   --bind ~/agent-data:/data \
+  --bind /usr/share/ollama/.ollama/models:/data/ollama/models \
+  --env AGENTOS_DATA_DIR=/data \
+  --env AGENT_MODEL=llama3 \
   agentOS.sif
 ```
 
