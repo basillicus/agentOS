@@ -1,4 +1,4 @@
 {
-  "model": "granite4:latest",
+  "model": "granite4",
   "base_url": "http://localhost:11434"
 }

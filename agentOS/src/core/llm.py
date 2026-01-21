@@ -64,7 +64,11 @@ RULES:
 class LLMClient:
     def __init__(self):
         # Paths
-        self.config_path = os.path.join(os.path.dirname(__file__), "../../data/config.json")
+        data_dir = os.getenv("AGENTOS_DATA_DIR")
+        if data_dir:
+            self.config_path = os.path.join(data_dir, "config.json")
+        else:
+            self.config_path = os.path.join(os.path.dirname(__file__), "../../data/config.json")
         
         # Load Config
         self.config = self._load_config()
@@ -72,7 +76,7 @@ class LLMClient:
         # Configuration Priorities: Config File > Env Var > Defaults
         self.api_key = os.getenv("AGENT_API_KEY", "ollama") 
         self.base_url = self.config.get("base_url") or os.getenv("AGENT_BASE_URL", "http://localhost:11434")
-        self.model = self.config.get("model") or os.getenv("AGENT_MODEL", "llama3")
+        self.model = self.config.get("model") or os.getenv("AGENT_MODEL", "granite4")
         
         # Determine endpoints based on base_url
         self._update_endpoints()

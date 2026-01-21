@@ -24,7 +24,11 @@ class MemorySkill:
     
     def __init__(self, db_path=None):
         if not db_path:
-            self.db_path = os.path.join(project_root, "data", "agent.db")
+            data_dir = os.getenv("AGENTOS_DATA_DIR")
+            if data_dir:
+                self.db_path = os.path.join(data_dir, "agent.db")
+            else:
+                self.db_path = os.path.join(project_root, "data", "agent.db")
         else:
             self.db_path = db_path
             

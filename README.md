@@ -40,6 +40,33 @@
     export AGENT_MODEL="granite4:latest"
     ```
 
+### Running with Apptainer (Singularity)
+
+You can package AgentOS as a portable Apptainer (Singularity) container.
+
+1.  **Build the image:**
+    ```bash
+    ./build_apptainer.sh
+    ```
+    This creates `agentOS.sif`.
+
+2.  **Run the agent:**
+    ```bash
+    ./agentOS.sif
+    ```
+
+3.  **Persist Data (Recommended):**
+    To save notes, history, and configuration, bind a writable directory:
+    ```bash
+    mkdir -p ~/agent-data
+    apptainer run --bind ~/agent-data:/data --env AGENTOS_DATA_DIR=/data agentOS.sif
+    ```
+
+    Or execute specific modules directly:
+    ```bash
+    ./agentOS.sif --json disk --action scan
+    ```
+
 ### Usage
 
 Run the main agent entry point:
