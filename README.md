@@ -55,17 +55,32 @@ You can package AgentOS as a portable Apptainer (Singularity) container.
     ./agentOS.sif
     ```
 
-3.  **Persist Data (Recommended):**
-    To save notes, history, and configuration, bind a writable directory:
+3.  **Persist Data & Models (Recommended):**
+    To save notes/history and use your host's existing Ollama models:
     ```bash
     mkdir -p ~/agent-data
-    apptainer run --bind ~/agent-data:/data --env AGENTOS_DATA_DIR=/data agentOS.sif
+    apptainer run \
+      --bind ~/agent-data:/data \
+      --bind /usr/share/ollama/.ollama/models:/root/.ollama/models \
+      --env AGENTOS_DATA_DIR=/data \
+      agentOS.sif
     ```
 
     Or execute specific modules directly:
     ```bash
     ./agentOS.sif --json disk --action scan
     ```
+
+### Development Mode (No Rebuild Required)
+If you modify the code (`entrypoint.sh` or `agentOS/`), you don't need to rebuild the image. Simply bind your local code over the container's code:
+
+```bash
+apptainer run \
+  --bind ./entrypoint.sh:/app/entrypoint.sh \
+  --bind ./agentOS:/app/agentOS \
+  --bind ~/agent-data:/data \
+  agentOS.sif
+```
 
 ### Usage
 

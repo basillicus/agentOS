@@ -13,7 +13,12 @@ def get_agent() -> Agent:
     This allows changing the model at runtime without restarting the script.
     """
     # 1. LOAD CONFIG (Fresh read)
-    config_path = os.path.join(os.path.dirname(__file__), "../../data/config.json")
+    data_dir = os.getenv("AGENTOS_DATA_DIR")
+    if data_dir:
+        config_path = os.path.join(data_dir, "config.json")
+    else:
+        config_path = os.path.join(os.path.dirname(__file__), "../../data/config.json")
+        
     config = {}
     if os.path.exists(config_path):
         try:

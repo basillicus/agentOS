@@ -69,3 +69,101 @@ To add a new skill (e.g., `NetworkSkill`):
 Configuration is handled by `src/core/llm.py` (legacy/simple client) and read by `src/core/engine.py`.
 *   Data is stored in `agentOS/data/config.json`.
 *   Keys: `model`, `base_url`.
+
+## 5. Apptainer & Containerization
+
+AgentOS is designed to run as a **Self-Contained AI Appliance** using Apptainer (formerly Singularity). This allows it to run on high-performance computing (HPC) clusters or standardized environments without complex dependency management.
+
+### 5.1 Container Architecture
+
+The container (`agentOS.sif`) is built as a layered stack:
+
+1.  **Base Layer:** `python:3.11-slim` (Debian Trixie).
+2.  **Runtime Layer:**
+    *   **Ollama:** Installed directly inside the container to provide the LLM inference engine.
+    *   **Dependencies:** `git`, `curl`, `zstd` (for Ollama model extraction), and Python packages.
+3.  **Application Layer:** The AgentOS source code (`/app/agentOS`).
+4.  **Entrypoint Layer:** A smart `entrypoint.sh` script that orchestrates the startup.
+
+### 5.2 The Smart Entrypoint (`entrypoint.sh`)
+
+The entrypoint script is the brain of the container. It handles three critical tasks before the agent starts:
+
+1.  **Ollama Management:**
+    *   Checks if an external `OLLAMA_HOST` is provided.
+    *   If not, it spawns an **internal** `ollama serve` process in the background.
+    *   It waits for the API to become responsive before launching the Python agent.
+
+2.  **Permission Fixes (Root vs. User):**
+    *   Ollama defaults to storing models in `/root/.ollama/models`.
+    *   In Apptainer, the container runs as the **host user**, not root.
+    *   The script detects this and automatically redirects `OLLAMA_MODELS` to a writable location (checked in this order):
+        1.  `/data/ollama/models` (if `/data` is mounted and writable).
+        2.  `$HOME/.ollama/models` (fallback).
+
+3.  **Model Provisioning:**
+    *   Checks if the requested `AGENT_MODEL` (default: `granite4`) exists.
+    *   If missing, it attempts to `ollama pull` it automatically (requires Internet).
+
+### 5.3 Data Persistence & Binding
+
+To make the container useful, you must persist two types of data: **User Data** (DB/Config) and **LLM Models**.
+
+#### A. Persisting User Data
+The application looks for the `AGENTOS_DATA_DIR` environment variable.
+*   **Internal Path:** `/data` (Standard convention).
+*   **Host Path:** Any directory (e.g., `~/agent-data`).
+
+```bash
+mkdir -p ~/agent-data
+apptainer run --bind ~/agent-data:/data --env AGENTOS_DATA_DIR=/data agentOS.sif
+```
+
+#### B. Managing LLM Models
+Downloading models (multi-GB files) every time is inefficient. You should bind a local model directory.
+
+**Scenario 1: Using Host Models**
+If you already have Ollama running on your host or models downloaded at `/usr/share/ollama/...`:
+
+```bash
+# Map host models to the container's writable model path
+apptainer run \
+  --bind ~/agent-data:/data \
+  --bind /usr/share/ollama/.ollama/models:/data/ollama/models \
+  --env AGENTOS_DATA_DIR=/data \
+  agentOS.sif
+```
+*The entrypoint will detect the non-root user and use `/data/ollama/models` as the model path.*
+
+**Scenario 2: Self-Contained Download**
+If you bind an empty folder, the container will download the model into it once, and persist it for future runs.
+
+```bash
+mkdir -p ~/my-models
+apptainer run \
+  --bind ~/agent-data:/data \
+  --bind ~/my-models:/data/ollama/models \
+  --env AGENTOS_DATA_DIR=/data \
+  agentOS.sif
+```
+
+### 5.4 Build Process
+
+The build uses a definition file (`agentOS.def`) and a helper script (`build_apptainer.sh`).
+
+*   **Requirement:** `apptainer` installed on the host.
+*   **Command:** `./build_apptainer.sh`
+*   **Flags:** Uses `--fakeroot` to allow package installation (apt/pip) during the build phase without requiring root privileges on the host system.
+
+### 5.5 Development Mode (Hot Reload)
+
+You can develop the agent *inside* the container context without rebuilding the `.sif` file by binding your local source code over the container's `/app` directory:
+
+```bash
+apptainer run \
+  --bind ./agentOS:/app/agentOS \
+  --bind ./entrypoint.sh:/app/entrypoint.sh \
+  --bind ~/agent-data:/data \
+  agentOS.sif
+```
+
