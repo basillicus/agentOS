@@ -16,6 +16,16 @@ from src.skills.system.tools import SystemSkill
 from src.core.style import TUI, Colors
 from src.core.dependencies import AgentDeps
 from src.core.llm import LLMClient
+import logfire
+
+# Configure observability
+# This will auto-detect PYDANTIC_LOGFIRE_TOKEN env var or use local fallback if configured.
+try:
+    logfire.configure()
+except Exception:
+    # Logfire might fail if not authenticated and strict mode is on, 
+    # but usually it's safe to call.
+    pass
 
 # --- CONDITIONAL IMPORT FOR PYDANTIC AI ---
 PYDANTIC_ERROR = None

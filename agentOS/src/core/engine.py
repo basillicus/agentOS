@@ -2,7 +2,7 @@ import os
 import json
 from typing import List, Union
 from pydantic_ai import Agent, RunContext
-from pydantic_ai.models.openai import OpenAIModel
+from pydantic_ai.models.openai import OpenAIChatModel
 
 from src.core.dependencies import AgentDeps
 from src.core.schemas import Note, HistoryItem, ActionResponse, CacheItem, DiskUsage, FileScanResult
@@ -38,10 +38,10 @@ def get_agent() -> Agent:
 
     try:
         # Try passing kwargs directly (Standard Pydantic AI)
-        model = OpenAIModel(model_name, base_url=base_url, api_key=api_key)
+        model = OpenAIChatModel(model_name, base_url=base_url, api_key=api_key)
     except TypeError:
         # Fallback: Older/Different versions rely on Env Vars
-        model = OpenAIModel(model_name)
+        model = OpenAIChatModel(model_name)
 
     # 3. DEFINE AGENT
     agent = Agent(

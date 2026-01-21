@@ -60,6 +60,50 @@ You will be presented with the Main Menu:
 
 Configuration is stored in `agentOS/data/config.json`. You can modify this file directly or use the **Settings** menu in the TUI to change the active model.
 
+## 🧪 Testing
+
+AgentOS includes a comprehensive testing framework with three levels:
+
+*   **Unit Tests:** Test individual skills and components in isolation.
+*   **Integration Tests:** Test how components work together.
+*   **Evaluation Tests:** Test the agent's behavior with logging via Logfire.
+
+### Running Tests
+
+Run all tests:
+```bash
+python run_tests.py
+```
+
+Run specific test types:
+```bash
+python run_tests.py --type unit      # Unit tests only
+python run_tests.py --type integration  # Integration tests only
+python run_tests.py --type evals    # Evaluation tests only
+```
+
+Or using pytest:
+```bash
+pip install pytest pytest-cov
+pytest tests/unit/ -v
+pytest tests/integration/ -v
+pytest tests/evals/ -v
+pytest tests/ --cov=agentOS --cov-report=html  # With coverage
+```
+
+### Evaluation Framework
+
+The evaluation framework uses Pydantic Logfire for observability:
+```bash
+# Install dev dependencies
+pip install -e ".[dev]"
+# Or install logfire separately
+pip install logfire
+
+# Run evaluation tests with logfire
+python -m pytest tests/evals/ -v
+```
+
 ## 🤝 Contributing
 
 See [AGENTS.md](AGENTS.md) for the architectural specification and roadmap.
