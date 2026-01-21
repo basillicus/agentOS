@@ -1,21 +1,39 @@
 #!/bin/bash
 set -e
 
-IMAGE_NAME="agentOS.sif"
+FLAVOR=${1:-"standard"}
+IMAGE_NAME="agentOS-${FLAVOR}.sif"
 DEF_FILE="agentOS.def"
 
-echo "Building Apptainer image: $IMAGE_NAME from $DEF_FILE"
+echo "Building Apptainer image ($FLAVOR): $IMAGE_NAME"
 
-# Check if apptainer is installed
-if ! command -v apptainer &> /dev/null; then
-    echo "Error: apptainer could not be found."
-    echo "Please install Apptainer to build the image."
+ARGS=""
+
+if [ "$FLAVOR" == "lite" ]; then
+    echo " -> Config: No Ollama, No Models."
+    ARGS="--build-arg INSTALL_OLLAMA=false"
+    
+elif [ "$FLAVOR" == "standard" ]; then
+    echo " -> Config: Ollama Included, Download models at runtime."
+    ARGS="--build-arg INSTALL_OLLAMA=true --build-arg PRELOAD_MODEL=false"
+    
+elif [ "$FLAVOR" == "full" ]; then
+    echo " -> Config: All-in-one (Ollama + Granite4 Model baked in)."
+    ARGS="--build-arg INSTALL_OLLAMA=true --build-arg PRELOAD_MODEL=true"
+    
+else
+    echo "Error: Unknown flavor '$FLAVOR'. Use: lite, standard, full"
     exit 1
 fi
 
-# Build the image
-# --force overwrites existing image
-apptainer build --fakeroot --force "$IMAGE_NAME" "$DEF_FILE"
+# Check for apptainer
+if ! command -v apptainer &> /dev/null; then
+    echo "Error: apptainer not found."
+    exit 1
+fi
+
+# Build
+echo "Running: apptainer build --fakeroot $ARGS $IMAGE_NAME $DEF_FILE"
+apptainer build --fakeroot --force $ARGS "$IMAGE_NAME" "$DEF_FILE"
 
 echo "Build complete: $IMAGE_NAME"
-echo "To run: ./$IMAGE_NAME"

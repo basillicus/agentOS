@@ -42,20 +42,25 @@
 
 ### Running with Apptainer (Singularity)
 
-You can package AgentOS as a portable Apptainer (Singularity) container.
+You can package AgentOS as a portable Apptainer (Singularity) container. We support three build flavors:
 
-1.  **Build the image:**
-    ```bash
-    ./build_apptainer.sh
-    ```
-    This creates `agentOS.sif`.
+1.  **Standard** (Default): Includes Ollama. Downloads models at runtime.
+2.  **Lite**: Code only. Requires external Ollama server.
+3.  **Full**: Includes Ollama and `granite4` model baked in (Large).
 
-2.  **Run the agent:**
-    ```bash
-    ./agentOS.sif
-    ```
+**Build the image:**
+```bash
+./build_apptainer.sh [standard|lite|full]
+# Example:
+./build_apptainer.sh standard
+```
 
-3.  **Persist Data & Models (Recommended):**
+**Run the agent:**
+```bash
+./agentOS-standard.sif
+```
+
+### Persist Data & Models (Recommended)
     To save notes/history and use your host's existing Ollama models:
     ```bash
     mkdir -p ~/agent-data

@@ -1,12 +1,49 @@
 Bootstrap: docker
 From: python:3.11-slim
 
+%arguments
+    INSTALL_OLLAMA=true
+    PRELOAD_MODEL=false
+    MODEL_NAME=granite4
+
 %post
-    # Install system dependencies
-    apt-get update && apt-get install -y git curl zstd
+    # 1. Install system dependencies
+    apt-get update && apt-get install -y git curl zstd procps
     
-    # Install Ollama
-    curl -fsSL https://ollama.com/install.sh | sh
+    # 2. Conditionally Install Ollama
+    if [ "{{ INSTALL_OLLAMA }}" = "true" ]; then
+        echo "Installing Ollama..."
+        curl -fsSL https://ollama.com/install.sh | sh
+        
+        # 3. Conditionally Pre-load Model
+        if [ "{{ PRELOAD_MODEL }}" = "true" ]; then
+            echo "Pre-loading model: {{ MODEL_NAME }}..."
+            
+            # Create a shared directory for models
+            mkdir -p /opt/ollama/models
+            export OLLAMA_MODELS=/opt/ollama/models
+            
+            # Start Ollama in background
+            ollama serve &
+            PID=$!
+            
+            # Wait for it to be ready
+            echo "Waiting for Ollama..."
+            sleep 10
+            
+            # Pull the model
+            echo "Pulling {{ MODEL_NAME }}..."
+            ollama pull {{ MODEL_NAME }}
+            
+            # Kill the server
+            kill $PID
+            
+            # CRITICAL: Fix permissions so non-root users can read these files
+            chmod -R 777 /opt/ollama
+        fi
+    else
+        echo "Skipping Ollama installation (Lite Build)"
+    fi
     
     # Clean up
     apt-get clean && rm -rf /var/lib/apt/lists/*
@@ -26,13 +63,15 @@ From: python:3.11-slim
     export LC_ALL=C.UTF-8
     export LANG=C.UTF-8
     
-    # Ollama Configuration
-    export OLLAMA_HOST=127.0.0.1:11434
-    export OLLAMA_MODELS=/root/.ollama/models
-    
-    # Agent Defaults
-    export AGENT_MODEL=granite4
+    # Default Config
+    export AGENT_MODEL={{ MODEL_NAME }}
     export AGENTOS_DATA_DIR=/data
+    
+    # If we built with a model, point to it. 
+    # Otherwise, entrypoint will handle defaults.
+    if [ -d "/opt/ollama/models" ]; then
+        export OLLAMA_MODELS=/opt/ollama/models
+    fi
 
 %runscript
     exec /app/entrypoint.sh "$@"
@@ -40,4 +79,5 @@ From: python:3.11-slim
 %labels
     Author David
     Version 0.1.0
-    Description AgentOS Apptainer Image (with Ollama Runtime)
+    Description AgentOS Apptainer Image
+    Flavor {{ INSTALL_OLLAMA }} (Model: {{ PRELOAD_MODEL }})
